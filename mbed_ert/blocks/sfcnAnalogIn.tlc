@@ -1,0 +1,72 @@
+%% File : sfcnAnalogIn.tlc
+%%
+%% Created by K.Bass
+%% 2015-03-01
+
+
+%implements sfcnAnalogIn "C"
+
+%include "mbed_block_common_includes.tlc"
+
+%% Function: BlockTypeSetup ===============================================
+%%
+%function BlockTypeSetup(block, system) void
+  %%
+  %% Ensure required header files are included and C++ mode is on
+    %<MbedCommonBlockTypeSetup(block, system)>
+  %%
+%endfunction
+
+%% Function: BlockInstanceSetup ===========================================
+%%
+%function BlockInstanceSetup(block, system) void
+  %%
+  %<LibBlockSetIsExpressionCompliant(block)>
+  %%
+  %if !EXISTS(::MbedAnalogInConfig)
+    %createrecord ::MbedAnalogInConfig { MbedAnalogInCnt 0; CreateClass TLC_TRUE }
+  %endif
+%%breakpoint  
+  %%assign pin1 = LibBlockParameterString(P1)
+  %%assign pin1 = LibBlockParameter(P1, "", "", 0)numPorts bufferSize Format
+  %assign rf        = SFcnParamSettings.ReadFcn
+  %assign pn        = SFcnParamSettings.PinName
+  %addtorecord :: MbedAnalogInConfig AnalogIn { ReadFcn rf; PinName pn}
+  %assign :: MbedAnalogInConfig.MbedAnalogInCnt = ::MbedAnalogInConfig.MbedAnalogInCnt + 1
+%endfunction
+
+%% Function: Start ========================================================
+%%
+%function Start(block, system) Output
+  %%breakpoint
+  %if !SLibCodeGenForSim()      
+      %assign modelC = LibGetModelDotCFile()
+      %assign pn        = SFcnParamSettings.PinName
+      %%assign tmpBuf = "MAX6675 %<block.Identifier> (%<pin1>, %<pin2>, %<pin3>);"
+      %openfile tmpBuf
+    AnalogIn %<block.Identifier>(%<pn>);
+      %closefile tmpBuf
+      %<LibSetSourceFileSection(modelC, "Definitions", tmpBuf)>
+  %endif
+  %%
+%endfunction
+
+%% Function: Outputs ======================================================
+%%
+%function Outputs(block, system) Output
+  %%
+%%breakpoint
+    
+%if !SLibCodeGenForSim()
+  %assign rf        = SFcnParamSettings.ReadFcn
+  %assign pn        = SFcnParamSettings.PinName
+  %assign y1_val = LibBlockOutputSignal(0, "", "", 0)
+  /* Read ADC Value from pin %<pn> */
+  %% y = adc.read_u16(); // Wertebereich [0x0, 0xFFFF]Converts and read the analog input value
+  %% y = adc.read(); // Wertebereich [0, 1]
+  %<y1_val> = %<block.Identifier>.%<rf>;     
+%endif
+  %%
+%endfunction
+
+%% [EOF]

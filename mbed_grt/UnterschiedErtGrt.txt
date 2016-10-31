@@ -1,0 +1,17 @@
+1. keine Erzeugung von Bsp Main-> custom main?
+2. kein OS im mbed.tlc auswählar
+3. mbed_file_process.tlc, der über mrmain oder srmain entscheidet kann nicht benutzt werden (Desswegen auch keien custom main.cpp??)
+4. mbed_code_template.cgt kann nicht modifiziert werden (Ist ok, war auch vorher im originalzustand)
+5. matlab loggin auf null setzen
+6. bei auswahlcallback routine wurden viele ERT Einstellungen weggelassen --> spaeter looken was das war
+7. es wird ein ../rtw/.../rt_main.c in das Package gepackt. nach dem loeschen laesst sich das alles kompilieren.
+-> looken was drinsteht und warum nicht funzt. 
+8. Bei srmain -< LibCreateSourceFile geht nicht. ist aus ERT
+9. CodeFormat = "Embedded-C" -> CodeFormat = "RealTime"
+10. Der generierter Code nutzt die SimStruct Struktur und damit simstruc.h
+    simstruc.h erfordert die Defenetion der Zieldutzung durch eines von #define RT, NRT, MATLAB_MEX_FILE ...
+    Dieses kann nur beim kompilieren mit der Option -DRT erzeugt werden.
+    Beim mbed muss das D weggelassen werden-> Compile -> Compile Macros -> RT eintragen
+11. Sample Time Offset wird aktuell noch nicht unterstuetzt
+
+Die mrmain und srmain koennen aus rtw_hook gestartet werden.

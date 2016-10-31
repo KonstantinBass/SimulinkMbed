@@ -1,0 +1,14 @@
+%selectfile NULL_FILE
+  
+  %% Need to set the template compliance flag before you can use the API
+  %%<LibSetCodeTemplateComplianceLevel(1)>
+
+  %% Create a simple main.  Files are located in MATLAB/rtw/c/tlc/mw.
+  %%breakpoint
+  %%if LibIsSingleRateModel() || LibIsSingleTasking()
+    %include "mbed_srmain.tlc"
+    %<FcnSingleTaskingMain()>
+  %%else
+    %%include "mbed_mrmain.tlc"
+    %%<FcnMultiTaskingMain()>
+  %%endif

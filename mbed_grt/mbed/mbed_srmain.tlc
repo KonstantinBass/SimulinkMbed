@@ -1,0 +1,130 @@
+%% ==============================================================================
+%% 
+%% 
+%% 
+%%
+%% Abstract:
+%%   main for mbed target (single rate model)
+%%
+%% Copyright 1994-2013 The MathWorks, Inc.
+%% Geaendert durch: K.Bass 13.02.2015
+%selectfile NULL_FILE
+
+%function FcnSingleTaskingMain() void
+  
+  %%<SetCurrentUtilsIncludesIdx("main_util_incl")>
+  
+  %%if GenerateSampleERTMain
+    %%assign ::CompiledModel.GenerateSampleERTMain = TLC_FALSE
+    %%%warning Overriding example ert_main.c!
+  %%endif
+
+  %if LibIsModelReferenceTarget()
+    %return
+  %endif
+
+  %assign cFile = LibCreateSourceFile("Source", "Custom", "main")
+  %%openfile tmpBuf
+  %%#include "%<LibGetMdlPubHdrBaseName()>.h"
+  %%#include "Arduino.h"
+  %%closefile tmpBuf
+  %%<LibSetSourceFileSection(cFile, "Includes", tmpBuf)>
+
+  %openfile tmpBuf
+  static boolean_T OverrunFlag = 0;\
+  Ticker StepTicker;
+  
+  %<SLibDeclareFcnProtoCtlVariables()>\
+  
+  %<LibWriteModelData()>\
+  %closefile tmpBuf
+  
+  %%<SLibCacheCodeToFile("mainSrc_data_defn", tmpBuf)>
+  %<LibSetSourceFileSection(cFile, "Defines", tmpBuf)>
+  %openfile tmpBuf
+  #include "%<LibGetMdlPubHdrBaseName()>.h"
+  #include "mbed.h"
+  %%#include "../mbed-src/api/mbed.h"
+  %%<LibAddToCommonIncludes("max6675.h")> 
+  %closefile tmpBuf
+ 
+  %%<SLibCacheCodeToFile("mainSrc_incl", tmpBuf)>
+  %<LibSetSourceFileSection(cFile, "Includes", tmpBuf)>
+  
+  %openfile tmpBuf
+  %assign fcnReturns = "void"
+  %assign fcnName = "rt_OneStep"
+  %assign fcnParams = ""
+  %assign fcnCategory = "main"
+  %createrecord fcnRec {Name fcnName; Returns fcnReturns; Params fcnParams; ...
+    Abstract ""; Category fcnCategory; GeneratedBy "bareboard_srmain.tlc"; ...
+    Type "Utility"}
+  %<SLibDumpFunctionBanner(fcnRec)>
+  %undef fcnRec
+  %<fcnReturns> %<fcnName>(%<fcnParams>)
+  {
+    /* Disable interrupts here */
+    
+    /* Check for overun */
+    if (OverrunFlag++) {
+      %<LibSetRTModelErrorStatus("\"Overrun\"")>;
+      return;
+    }
+    
+    /* Save FPU context here (if necessary) */
+    /* Re-enable timer or interrupt here */
+    %assign varsbuf = LibWriteModelInputs()
+    %if varsbuf != ""
+      /* Remove conditional, and set model inputs here */
+      %<varsbuf>\
+    %endif
+    
+    %<LibCallModelStep(0)>\
+    
+    %assign varsbuf = LibWriteModelOutputs()
+    %if varsbuf != ""
+      /* Remove conditional, and get model outputs here */
+      %<varsbuf>\
+    %endif
+    
+    OverrunFlag--;
+    
+    /* Disable interrupts here */
+    /* Restore FPU context here (if necessary) */
+    /* Enable interrupts here */
+  }
+   
+  %assign fcnReturns = "int_T"
+  %assign fcnName = "main"
+  %assign fcnParams = "int_T argc, const char *argv[]"
+  %assign fcnCategory = "main"
+  %createrecord fcnRec {Name fcnName; Returns fcnReturns; Params fcnParams; ...
+    Abstract ""; Category fcnCategory; GeneratedBy "bareboard_srmain.tlc"; ...
+    Type "Main"}
+  %<SLibDumpFunctionBanner(fcnRec)>
+  %undef fcnRec
+  %<fcnReturns> %<fcnName>(%<fcnParams>)
+  {
+    /* Initialize model */
+    %<LibCallModelInitialize()>\
+    
+    /* Associate rt_OneStep() with a timer that executes at the base rate of the model */
+    /* Init the ticker with the address of the function to be attached and the interval */
+    StepTicker.attach(&rt_OneStep, %<CompiledModel.FundamentalStepSize>);
+    
+    while (true) {
+        // Do other things
+    }
+
+    %<LibCallModelTerminate()>\
+    return 0;
+  }
+  %closefile tmpBuf
+  
+  %%<SLibCacheCodeToFile("mainSrc_fcn_defn", tmpBuf)>
+  %%<LibSetSourceFileSection(cFile, "Definitions", tmpBuf)>
+  %<LibSetSourceFileSection(cFile, "Functions", tmpBuf)>
+
+  %%<SetCurrentUtilsIncludesIdx("")>
+  
+%endfunction

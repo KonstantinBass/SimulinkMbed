@@ -1,0 +1,127 @@
+%% File : sfcnDigitalOutput.tlc
+%%
+%% Description: 
+%%   Simulink Coder TLC Code Generation file for sfcnDigitalOutput
+%%
+%% Simulink version      : 8.3 (R2014a) 27-Dec-2013
+%% TLC file generated on : 18-Feb-2015 09:25:41
+%% Modifiziert durch
+%% K.Bass 18.02.2015
+
+
+%implements sfcnDigitalOutput "C"
+
+%include "mbed_block_common_includes.tlc"
+
+%% Function: BlockTypeSetup ===============================================
+%%
+%function BlockTypeSetup(block, system) void
+    %% Ensure required header files are included and C++ mode is on
+    %<MbedCommonBlockTypeSetup(block, system)>
+    %%breakpoint
+    %if !SLibCodeGenForSim()
+      %% ONLY C++!
+      %% In C++ we can use classes directly
+      %%<LibAddToCommonIncludes("max6675.h")> 
+      %% Get Arduino install path
+      %%assign file = FEVAL("arduino_ec.Prefs.getArduinoPath")
+      %%<SLibAddToStaticSources("%<file>/libraries/MAX6675/max6675.cpp")>
+    %endif
+%endfunction
+
+
+%% Function: BlockInstanceSetup ===========================================
+%%
+%function BlockInstanceSetup(block, system) void
+  %%
+  %<LibBlockSetIsExpressionCompliant(block)>
+
+  %if !EXISTS(::MbedDigitalOutputConfig)
+    %createrecord ::MbedDigitalOutputConfig { MbedDigitalOutCnt 0; CreateClass TLC_TRUE }
+  %endif
+%%breakpoint
+  %%assign pin1 = LibBlockParameter(P1, "", "", 0)
+  %assign pin1 = LibBlockParameterString(P1)
+  %addtorecord :: MbedDigitalOutputConfig DigitalOutput { pinDO pin1}
+  %assign :: MbedDigitalOutputConfig.MbedDigitalOutCnt = ::MbedDigitalOutputConfig.MbedDigitalOutCnt + 1
+
+  %%if ::GenCPP == 0
+  %%    %assign errTxt = "Mbed Darf nur im C++ Modus benutzt werden"
+  %%    %<LibBlockReportError(block,errTxt)>
+  %%endif
+  %%
+%endfunction 
+
+%% Function: Start ========================================================
+%%
+%function Start(block, system) Output
+  %%breakpoint
+  %if !SLibCodeGenForSim()
+      %%%if ::max6675Config.CreateClass == TLC_TRUE && ::GenCPP == 1
+      %%     %assign tmpBuf = "static Servo servoPool[%<::servoConfiguration.ServoCnt>];"
+      %%     %assign modelC = LibGetModelDotCFile() 
+      %%     %<LibSetSourceFileSection(modelC, "Definitions", tmpBuf)>
+      %%     %assign ::servoConfiguration.CreateClass = TLC_FALSE
+      %%%endif
+      %%assign pin1 = LibBlockParameter(p1, "", "", 0)
+      %assign pin1 = LibBlockParameterString(P1)
+      
+      %assign modelC = LibGetModelDotCFile() 
+      %%assign tmpBuf = "MAX6675 %<block.Identifier> (%<pin1>, %<pin2>, %<pin3>);"
+      %openfile tmpBuf
+    %%int %<block.Identifier>_SCK = %<pin1>;
+    %%int %<block.Identifier>_CS  = %<pin2>;
+    %%int %<block.Identifier>_SO  = %<pin3>;
+    %%MAX6675 %<block.Identifier> (%<block.Identifier>_SCK, %<block.Identifier>_CS, %<block.Identifier>_SO);
+    DigitalOut %<block.Identifier>(%<pin1>);
+      %closefile tmpBuf
+      %<LibSetSourceFileSection(modelC, "Definitions", tmpBuf)>
+    %endif
+  %%
+%endfunction
+
+%% Function: Outputs ======================================================
+%%
+%function Outputs(block, system) Output
+%%breakpoint
+    %if !SLibCodeGenForSim()
+        %%assign p1_val = LibBlockParameter(p1, "", "", 0)            
+        %%assign p2_val = LibBlockParameter(p2, "", "", 0)
+        %%assign p3_val = LibBlockParameter(p3, "", "", 0)
+        %%assign p4_val = LibBlockParameter(p4, "", "", 0)
+        %assign u1_val = LibBlockInputSignal(0, "", "", 0)
+        %%assign y1_val = LibBlockOutputSignal(0, "", "", 0)        
+        %%
+        %%
+        %<block.Identifier> =  %<u1_val>;
+        %%if !LibBlockOutputSignalIsExpr(0)
+        %%endif 
+    %endif
+  %%
+%endfunction
+
+%% Function: BlockOutputSignal ============================================
+%%
+%%function BlockOutputSignal(block,system,portIdx,ucv,lcv,idx,retType) void
+  %%
+  %%assign p1_val = LibBlockParameter(p1, "", "", 0)
+  %%assign p2_val = LibBlockParameter(p2, "", "", 0)
+  %%assign u1_val = LibBlockInputSignal(0, "", "", 0)
+  %%assign y1_val = LibBlockOutputSignal(0, "", "", 0)
+  %%
+  %%switch retType
+    %%case "Signal"
+      %%if portIdx == 0
+        %%return "dummy( (int8_T)%<p1_val>, (int8_T)%<p2_val>, (uint8_T)%<u1_val>)"
+      %%else
+        %%assign errTxt = "Block output port index not supported: %<portIdx>"
+        %%<LibBlockReportError(block,errTxt)>
+      %%endif
+    %%default
+      %%assign errTxt = "Unsupported return type: %<retType>"
+      %%<LibBlockReportError(block,errTxt)>
+  %%endswitch
+  %%
+%%endfunction
+
+%% [EOF]

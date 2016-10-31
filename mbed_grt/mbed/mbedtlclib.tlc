@@ -1,0 +1,44 @@
+%% 
+%% 
+%%
+%% K.Bass 2016-09-14
+%%
+%% Abstract:
+%%   Bibliothek für TLC Funktionen von MBED GRT 
+%%   
+%%
+%function MbedComputeNumTaskTicks(period, stepSize) void
+  %assign nTaskTicks = period / stepSize + 0.5
+  %assign nTaskTicks = CAST("Number",FEVAL("floor", nTaskTicks))
+  %return nTaskTicks
+%endfunction
+
+%% Local function used in this file
+%function MbedComputeTaskTickLimit(tidIdx) void
+  
+  %assign stepSize = FundamentalStepSize
+  %assign period = SampleTime[tidIdx].PeriodAndOffset[0]
+  %if tidIdx == 0
+    %assign nTaskTicks = 1
+  %else 
+    %assign nTaskTicks = MbedComputeNumTaskTicks(period, stepSize) 
+  %endif
+  %return nTaskTicks
+%endfunction
+
+
+%% Local function used in this file
+%function MbedComputeTaskTickOffset(tidIdx) void
+  %assign stepSize = FundamentalStepSize
+  %assign period = SampleTime[tidIdx].PeriodAndOffset[0]
+  %assign offset = SampleTime[tidIdx].PeriodAndOffset[1]
+  %if offset == 0.0
+    %assign nOffsetTicks = 0
+  %else
+    %assign nOffsetTicks = (period - offset)/stepSize + 0.5
+    %assign nOffsetTicks = CAST("Number",FEVAL("floor", nOffsetTicks))
+  %endif
+  %return nOffsetTicks
+%endfunction
+
+

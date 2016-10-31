@@ -1,0 +1,118 @@
+%% File : sfcnPwm.tlc
+%%
+%% Created by
+%% K.Bass 01.05.2015
+%% E-Mail: k.bass@gmx.com
+
+
+%implements sfcnPwm "C"
+
+%include "mbed_block_common_includes.tlc"
+
+%% Function: BlockTypeSetup ===============================================
+%%
+%function BlockTypeSetup(block, system) void
+    %% Ensure required header files are included and C++ mode is on
+    %<MbedCommonBlockTypeSetup(block, system)>
+    %%breakpoint
+    %if !SLibCodeGenForSim()
+      %% ONLY C++!
+      %% In C++ we can use classes directly
+      %%<LibAddToCommonIncludes("max6675.h")> 
+      %% Get Arduino install path
+      %%assign file = FEVAL("arduino_ec.Prefs.getArduinoPath")
+      %%<SLibAddToStaticSources("%<file>/libraries/MAX6675/max6675.cpp")>
+    %endif
+%endfunction
+
+
+%% Function: BlockInstanceSetup ===========================================
+%%
+%function BlockInstanceSetup(block, system) void
+  %%
+  %<LibBlockSetIsExpressionCompliant(block)>
+
+  %if !EXISTS(::MbedPwmConfig)
+    %createrecord ::MbedPwmConfig { MbedPwmCnt 0; CreateClass TLC_TRUE }
+  %endif
+%%breakpoint
+  %%assign pin1 = LibBlockParameter(P1, "", "", 0)
+  %assign pin1 = SFcnParamSettings.pinPwm
+  %addtorecord :: MbedPwmConfig PWM { pinPwm pin1}
+  %assign :: MbedPwmConfig.MbedPwmCnt = ::MbedPwmConfig.MbedPwmCnt + 1
+
+  %%if ::GenCPP == 0
+  %%    %assign errTxt = "Mbed Darf nur im C++ Modus benutzt werden"
+  %%    %<LibBlockReportError(block,errTxt)>
+  %%endif
+  %%
+%endfunction 
+
+%% Function: Start ========================================================
+%%
+%function Start(block, system) Output
+  %%breakpoint
+  %if !SLibCodeGenForSim()
+      %%%if ::max6675Config.CreateClass == TLC_TRUE && ::GenCPP == 1
+      %%     %assign tmpBuf = "static Servo servoPool[%<::servoConfiguration.ServoCnt>];"
+      %%     %assign modelC = LibGetModelDotCFile() 
+      %%     %<LibSetSourceFileSection(modelC, "Definitions", tmpBuf)>
+      %%     %assign ::servoConfiguration.CreateClass = TLC_FALSE
+      %%%endif
+      %%assign pin1 = LibBlockParameter(p1, "", "", 0)
+      %assign pin1 = SFcnParamSettings.pinPwm
+      %%
+      %assign modelC = LibGetModelDotCFile()       
+      %openfile tmpBuf
+    %%PwmOut mypwm(PWM_OUT);
+    PwmOut %<block.Identifier>(%<pin1>);
+      %closefile tmpBuf
+      %<LibSetSourceFileSection(modelC, "Definitions", tmpBuf)>
+    %endif
+  %%
+%endfunction
+
+%% Function: Outputs ======================================================
+%%
+%function Outputs(block, system) Output
+%%breakpoint
+    %if !SLibCodeGenForSim()
+        %assign u1_period = LibBlockInputSignal(0, "", "", 0)
+        %assign u2_pulswidth = LibBlockInputSignal(1, "", "", 0)
+        %%assign y1_val = LibBlockOutputSignal(0, "", "", 0)        
+        %%
+        %%mypwm.period_ms(10);
+        %%mypwm.pulsewidth_ms(1);
+        %<block.Identifier>.period_ms(%<u1_period>);
+        %<block.Identifier>.pulsewidth_ms(%<u2_pulswidth>);
+        %%if !LibBlockOutputSignalIsExpr(0)
+        %%endif 
+    %endif
+  %%
+%endfunction
+
+%% Function: BlockOutputSignal ============================================
+%%
+%%function BlockOutputSignal(block,system,portIdx,ucv,lcv,idx,retType) void
+  %%
+  %%assign p1_val = LibBlockParameter(p1, "", "", 0)
+  %%assign p2_val = LibBlockParameter(p2, "", "", 0)
+  %%assign u1_val = LibBlockInputSignal(0, "", "", 0)
+  %%assign y1_val = LibBlockOutputSignal(0, "", "", 0)
+  %%
+  %%switch retType
+    %%case "Signal"
+      %%if portIdx == 0
+        %%return "dummy( (int8_T)%<p1_val>, (int8_T)%<p2_val>, (uint8_T)%<u1_val>)"
+      %%else
+        %%assign errTxt = "Block output port index not supported: %<portIdx>"
+        %%<LibBlockReportError(block,errTxt)>
+      %%endif
+    %%default
+      %%assign errTxt = "Unsupported return type: %<retType>"
+      %%<LibBlockReportError(block,errTxt)>
+  %%endswitch
+  %%
+%%endfunction
+
+%% [EOF]

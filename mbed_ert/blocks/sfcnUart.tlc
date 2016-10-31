@@ -1,0 +1,98 @@
+%% File : sfcnUart.tlc
+%%
+%% Description: 
+%%   Simulink Coder TLC Code Generation file for sfcnUart
+%%
+%% Simulink version      : 8.3 (R2014a) 27-Dec-2013
+%% TLC file generated on : 20-Feb-2015 16:05:50
+
+/%
+     %%%-MATLAB_Construction_Commands_Start
+     def = legacy_code('initialize');
+     def.SFunctionName = 'sfcnUart';
+     def.OutputFcnSpec = 'double y1 = dummy(int8 p1,int8 p2,int8 p3)';
+     legacy_code('sfcn_tlc_generate', def);
+     %%%-MATLAB_Construction_Commands_End
+ %/
+
+%implements sfcnUart "C"
+
+%include "mbed_block_common_includes.tlc"
+
+%% Function: BlockTypeSetup ===============================================
+%%
+%function BlockTypeSetup(block, system) void
+  %%
+  %% Ensure required header files are included and C++ mode is on
+    %<MbedCommonBlockTypeSetup(block, system)>
+  %%
+%endfunction
+
+%% Function: BlockInstanceSetup ===========================================
+%%
+%function BlockInstanceSetup(block, system) void
+  %%
+  %<LibBlockSetIsExpressionCompliant(block)>
+  %%
+  %if !EXISTS(::MbedUartConfig)
+    %createrecord ::MbedUartConfig { MbedUartCnt 0; CreateClass TLC_TRUE }
+  %endif
+%%breakpoint  
+  %%assign pin1 = LibBlockParameterString(P1)
+  %%assign pin1 = LibBlockParameter(P1, "", "", 0)numPorts bufferSize Format
+  %assign n         = SFcnParamSettings.numPorts
+  %assign BufSize= SFcnParamSettings.bufferSize
+  %assign MsgFormat    = SFcnParamSettings.Format
+  %addtorecord :: MbedUartConfig Uart { numPorts n; bufferSize BufSize; Format MsgFormat}
+  %assign :: MbedUartConfig.MbedUartCnt = ::MbedUartConfig.MbedUartCnt + 1
+%endfunction
+
+%% Function: Start ========================================================
+%%
+%function Start(block, system) Output
+  %%breakpoint
+  %if !SLibCodeGenForSim()      
+      %assign modelC = LibGetModelDotCFile() 
+      %%assign tmpBuf = "MAX6675 %<block.Identifier> (%<pin1>, %<pin2>, %<pin3>);"
+      %openfile tmpBuf
+//------------------------------------
+// Hyperterminal configuration
+// 9600 bauds, 8-bit data, no parity
+//------------------------------------
+    Serial %<block.Identifier>(SERIAL_TX, SERIAL_RX);
+      %closefile tmpBuf
+      %<LibSetSourceFileSection(modelC, "Definitions", tmpBuf)>
+  %endif
+  %%
+%endfunction
+
+%% Function: Outputs ======================================================
+%%
+%function Outputs(block, system) Output
+  %%
+%%breakpoint
+    
+%if !SLibCodeGenForSim()
+  %assign n         = SFcnParamSettings.numPorts
+  %assign bufferSize= SFcnParamSettings.bufferSize
+  %assign Format    = SFcnParamSettings.Format
+/* sent buffer size %<bufferSize> */
+   %if n == 0
+     %<block.Identifier>.printf("%<Format>");
+   %else
+     %<block.Identifier>.printf("%<Format>",\
+    %foreach i = n
+        %assign arg = LibBlockInputSignal(i, "", "", 0)
+        %if i != (n-1)
+            %<arg>, \
+        %else
+            %<arg>);
+        %endif
+    %endforeach
+    %endif
+     
+%endif
+  %%
+%endfunction
+
+%% [EOF]

@@ -1,0 +1,479 @@
+%% File : sfcnUart.tlc
+%%
+%% Description: 
+%%   Simulink Coder TLC Code Generation file for sfcnUart
+%%
+%% Simulink version      : 8.3 (R2014a) 27-Dec-2013
+%% TLC file generated on : 20-Feb-2015 16:05:50
+
+/%
+     %%%-MATLAB_Construction_Commands_Start
+     def = legacy_code('initialize');
+     def.SFunctionName = 'sfcnUart';
+     def.OutputFcnSpec = 'double y1 = dummy(int8 p1,int8 p2,int8 p3)';
+     legacy_code('sfcn_tlc_generate', def);
+     %%%-MATLAB_Construction_Commands_End
+ %/
+
+%implements CustomMainConfig "C"
+
+%include "mbed_block_common_includes.tlc"
+%include "mbedtlclib.tlc"
+
+%% Function: BlockTypeSetup ===============================================
+%%
+%function BlockTypeSetup(block, system) void
+  %%
+  %% Ensure required header files are included and C++ mode is on
+    %<MbedCommonBlockTypeSetup(block, system)>
+  %%
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %% Erzeugen von main.cpp
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %with CompiledModel
+  %%Da wir nicht im Globalen Scope sind wie bei ERT->
+  %%  wird der Scope von Block auf CompiledModel gesetzt
+  %selectfile NULL_FILE
+
+  %if LibIsModelReferenceTarget()
+    %return
+  %endif
+  %assign nameMainFile = SFcnParamSettings.strName
+  %assign cFile = LibCreateSourceFile("Source", "Custom", "%<nameMainFile>")
+
+%openfile tmpBuf
+
+/* 
+ * Copyright 2012-2013 The MathWorks, Inc.
+ *
+ * File: rt_main.c
+ *
+ * Abstract:
+ *
+ *   A real-time main that runs generated Simulink Coder code under most 
+ *   operating systems.  Based on the definition of MULTITASKING, a single-task 
+ *   or multitask step function is employed.
+ *
+ *   This file is a useful starting point for creating a custom main when 
+ *   targeting a custom floating point processor or integer micro-controller.
+ *
+ *   Alternatively for ERT targets, you can generate a sample ert_main.c file 
+ *   with the generated code by selecting the "Generate an example main program"
+ *   option.  In this case, ert_main.c is precisely customized to the
+ *   model requirements.  
+ *
+ * Required Defines:
+ *
+ *   MODEL - Model name
+ *   NUMST - Number of sample times
+ *
+ */
+
+/*==================*
+ * Required defines *
+ *==================*/
+# define MODEL %<LibGetModelName()>
+# define NUMST %<NumSynchronousSampleTimes> %%%<NumSampleTimes> 
+%%if %<NumSampleTimes> > 1
+%%# define MULTITASKING 
+%%endif 
+#define NCSTATES %<NumContStates>
+//#define HAVESTDIO
+//#define RT 
+//#define USE_RTMODEL
+#define MAT_FILE %<MatFileLogging>
+#define INTEGER_CODE %<PurelyIntegerCode>
+%if %<NumSampleTimes> == 1
+#define MT 0
+%else
+#define MT 1
+%endif 
+#define CLASSIC_INTERFACE 0
+#define ALLOCATIONFCN 0
+#define ONESTEPFCN 1
+#define TERMFCN 1
+#define MULTI_INSTANCE_CODE 0
+#define TID01EQ %<FixedStepOpts.TID01EQ>
+
+
+#ifndef MODEL
+# error Must specify a model name.  Define MODEL=name.
+#else
+/* create generic macros that work with any model */
+#define EXPAND_CONCAT(name1,name2)    name1 ## name2
+#define CONCAT(name1,name2)           EXPAND_CONCAT(name1,name2)
+#define MODEL_INITIALIZE              MdlStart
+#define MODEL_STEP                    MdlOutputs
+#define MODEL_TERMINATE               MdlTerminate
+#define RT_MDL                        CONCAT(MODEL,_M)
+#endif
+
+#ifndef NUMST
+# error Must specify the number of sample times. Define NUMST=number.
+#endif
+
+#if CLASSIC_INTERFACE == 1
+# error "Classic call interface is not supported by rt_main.c."
+#endif
+
+#if ONESTEPFCN==0
+#error Separate output and update functions are not supported by rt_main.c. \
+You must update rt_main.c to suit your application needs, or select \
+the 'Single output/update function' option.
+#endif
+
+#if TERMFCN==0
+#error The terminate function is required by rt_main.c. \
+You must update rt_main.c to suit your application needs, or select \
+the 'Terminate function required' option.
+#endif
+
+#if MULTI_INSTANCE_CODE==1
+#error The static version of rt_main.c does not support reusable \
+code generation.  Either deselect ERT option 'Generate reusable code', \
+select option 'Generate an example main program', or modify rt_main.c for \
+your application needs.
+#endif
+
+#define QUOTE1(name) #name
+#define QUOTE(name) QUOTE1(name)    /* need to expand name    */
+
+
+/*==========*
+ * Includes *
+ *==========*/
+#include "rtwtypes.h"
+#include <string.h>                    /* optional for strcmp */
+#include "rt_logging.h"
+#include "ext_work.h"
+#include "mbed.h"
+#include "%<LibGetMdlPubHdrBaseName()>.h"
+
+/*========================* 
+ * Setup for multitasking * 
+ *========================*/
+/* 
+ * MT is synonym for MULTITASKING 
+ */
+#if defined(MT)
+# if MT == 0
+# undef MT
+# else
+# define MULTITASKING 1
+# endif
+#endif
+
+#if defined(TID01EQ) && TID01EQ == 1
+#define FIRST_TID 1
+#else 
+#define FIRST_TID 0
+#endif
+
+/*====================*
+ * External functions *
+ *====================*/
+
+extern "C" void MODEL_INITIALIZE(void);
+extern "C" void MODEL_TERMINATE(void);
+extern "C" void MdlInitializeSizes(void);
+extern "C" void MdlInitializeSampleTimes(void);
+extern "C" SimStruct * MODEL(void);
+
+#if !defined(MULTITASKING)
+ extern "C" void MODEL_STEP(int_T tid);       /* single-rate step function */
+#else
+ extern "C" void MODEL_STEP(int_T tid);       /* multirate step function */
+#endif
+
+
+/*==================================*
+ * Global data local to this module *
+ *==================================*/
+#ifndef MULTITASKING
+static boolean_T OverrunFlags[1];    /* ISR overrun flags */
+static boolean_T eventFlags[1];      /* necessary for overlapping preemption */
+#else
+static boolean_T OverrunFlags[NUMST];
+static boolean_T eventFlags[NUMST];
+static int_T taskCounter[NUMST];
+
+#endif
+
+/*=============*
+ * MBED Ticker *
+ *=============*/
+Ticker StepTicker;
+SimStruct *RTM;
+
+/*===================*
+ * Visible functions *
+ *===================*/
+
+#if !defined(MULTITASKING) /* single task */
+
+/* Function: rtOneStep ========================================================
+ *
+ * Abstract:
+ *   Perform one step of the model.  This function is modeled such that
+ *   it could be called from an interrupt service routine (ISR) with minor
+ *   modifications.
+ */
+static void rt_OneStep(void)
+{
+    /* Disable interrupts here */
+
+    /***********************************************
+     * Check and see if base step time is too fast *
+     ***********************************************/
+    if (OverrunFlags[0]++) {
+        //rtmSetErrorStatus(RT_MDL, "Overrun");
+    }
+
+    /*************************************************
+     * Check and see if an error status has been set *
+     * by an overrun or by the generated code.       *
+     *************************************************/
+    //if (rtmGetErrorStatus(RT_MDL) != NULL) {
+    //    return;
+    //}
+
+    /* Save FPU context here (if necessary) */
+    /* Reenable interrupts here */
+
+    /**************
+     * Step model *
+     **************/
+    MODEL_STEP(0);
+
+    /**************************
+     * Decrement overrun flag *
+     **************************/
+    OverrunFlags[0]--;
+
+    rtExtModeCheckEndTrigger();
+
+    /* Disable interrupts here */
+    /* Restore FPU context here (if necessary) */
+    /* Reenable interrupts here */
+
+} /* end rtOneStep */
+
+#else /* multitask */
+
+/* Function: rtOneStep ========================================================
+ *
+ * Abstract:
+ *   Perform one step of the model.  This function is modeled such that
+ *   it could be called from an interrupt service routine (ISR) with minor
+ *   modifications.
+ *
+ *   Note that error checking is only necessary when this routine is
+ *   attached to an interrupt.
+ *
+ *   Also, you may wish to unroll any or all of for and while loops to
+ *   improve the real-time performance of this function.
+ */
+static void rt_OneStep(void)
+{
+    int_T i;
+
+    /* Disable interrupts here */
+
+    /***********************************************
+     * Check and see if base step time is too fast *
+     ***********************************************/
+    if (OverrunFlags[0]++) {
+        //rtmSetErrorStatus(RT_MDL, "Overrun");
+    }
+
+    /*************************************************
+     * Check and see if an error status has been set *
+     * by an overrun or by the generated code.       *
+     *************************************************/
+    //if (rtmGetErrorStatus(RT_MDL) != NULL) {
+    //    return;
+    //}
+
+    /* Save FPU context here (if necessary) */
+    /* Reenable interrupts here */
+    
+    /**********************************************************************
+     * Update EventFlags to run this time step and check subrate overrun  *
+     *********************************************************************/
+     for (i = 1; i < NUMST; i++) {
+       if (taskCounter[i] == 0) {
+         if (eventFlags[i]) {
+           OverrunFlags[0] = false;
+           OverrunFlags[i] = true;
+
+           // Sampling too fast
+           //rtmSetErrorStatus(RT_MDL, "Overrun");
+           return;
+           }
+
+         eventFlags[i] = true;
+       }
+    }
+    %% scheduler code in main 
+    %foreach i = NumSynchronousSampleTimes-1
+    taskCounter[%<i+1>]++;
+    if (taskCounter[%<i+1>] == %< MbedComputeTaskTickLimit(i+1)>) {
+      taskCounter[%<i+1>]=0;
+    }
+    %endforeach
+
+    /* Set model inputs associated with base rate here */
+
+    /*******************************************
+     * Step the model for the base sample time *
+     *******************************************/
+    MODEL_STEP(0);
+
+    /* Get model outputs associated with base rate here */
+
+    /************************************************************************
+     * Model step complete for base sample time, now it is okay to          *
+     * re-interrupt this ISR.                                               *
+     ************************************************************************/
+    OverrunFlags[0]--;
+
+    /*********************************************************
+     * Step the model for any other sample times (subrates) *
+     *********************************************************/
+    for (i = FIRST_TID+1; i < NUMST; i++) {
+        /*************************************************************
+         * If task "i" is running, don't run any lower priority task *
+         *************************************************************/
+        if (OverrunFlags[i]) return; 
+
+        if (eventFlags[i]) {
+            OverrunFlags[i]++;
+
+            /* Set model inputs associated with subrate here */
+
+            /******************************************
+             * Step the model for sample time "i" *
+             ******************************************/
+            MODEL_STEP(i);
+
+            /* Get model outputs associated with subrate here */
+            
+            /**********************************************
+             * Indicate task complete for sample time "i" *
+             **********************************************/
+            OverrunFlags[i]--;
+            eventFlags[i]--;
+        }
+    }
+
+    rtExtModeCheckEndTrigger();
+    /* Disable interrupts here */
+    /* Restore FPU context here (if necessary) */
+    /* Enable interrupts here */
+
+} /* end rtOneStep */
+
+#endif /* MULTITASKING */
+
+/* Function: rt_InitModel ====================================================
+ * 
+ * Abstract: 
+ *   Initialized the model and the overrun flags
+ *
+ */
+static void rt_InitModel(void)
+{
+  RTM = MODEL();
+  MdlInitializeSizes();
+  MdlInitializeSampleTimes();
+
+#if defined(MULTITASKING)
+    int i;
+    for(i=0; i < NUMST; i++) {
+        OverrunFlags[i] = 0;
+        eventFlags[i] = 0;
+        taskCounter[i] = 0;
+    }
+#else
+    OverrunFlags[0] = 0;
+    eventFlags[0] = 0;
+#endif
+
+    /************************
+     * Initialize the model *
+     ************************/
+    MODEL_INITIALIZE();
+}
+
+/* Function: rt_TermModel ====================================================
+ * 
+ * Abstract:
+ *   Terminates the model and prints the error status
+ *
+ */
+static int_T rt_TermModel(void)
+{
+    MODEL_TERMINATE();    
+    return(0);
+}
+
+/* Function: main =============================================================
+ *
+ * Abstract:
+ *   Execute model on a generic target such as a workstation.
+ */
+int_T main(int_T argc, const char *argv[])
+{
+
+    /************************
+     * Initialize the model *
+     ************************/
+    rt_InitModel();
+
+    /* Associate rt_OneStep() with a timer that executes at the base rate of the model */
+    /* Init the ticker with the address of the function to be attached and the interval */
+    StepTicker.attach(&rt_OneStep, %<CompiledModel.FundamentalStepSize>);
+    while (true) {
+        // Do other things
+     }
+
+    rt_TermModel();
+    return 0;
+
+}
+
+/* [EOF] rt_main.c */
+
+  %closefile tmpBuf
+  
+  %%<SLibCacheCodeToFile("mainSrc_data_defn", tmpBuf)>
+  %<LibSetSourceFileSection(cFile, "Defines", tmpBuf)>
+
+  %endwith
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %% ENDE: Erzeugen von main.cpp
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%endfunction
+
+%% Function: BlockInstanceSetup ===========================================
+%%
+%function BlockInstanceSetup(block, system) void
+  %%
+  %<LibBlockSetIsExpressionCompliant(block)>
+  %%
+
+  %if !EXISTS(::MbedUartConfig)
+    %createrecord ::MbedCustomMainConfig { MbedCustomMainCnt 0; CreateClass TLC_TRUE }
+  %endif
+%%breakpoint  
+  %%assign pin1 = LibBlockParameterString(P1)
+  %%assign pin1 = LibBlockParameter(P1, "", "", 0)numPorts bufferSize Format
+  %assign strName   = SFcnParamSettings.strName
+  %assign lngName   = SFcnParamSettings.lngName
+  %assign numTmp    = SFcnParamSettings.numTmp
+  %%addtorecord :: MbedCustomMainConfig CustomMain { FileName strName; FileNameLng lngName; Format numTmp}
+  %%assign :: MbedCustomMainConfig.MbedCustomMainCnt = ::MbedCustomMainConfig.MbedCustomMainCnt + 1
+%endfunction
+
+
+%% [EOF]

@@ -1,0 +1,88 @@
+%% File : sfcnSpiConf.tlc
+%%
+%% Description: 
+%%   Simulink Coder TLC Code Generation file for sfcnSpi
+%%
+%% Simulink version      : 8.3 (R2014a) 27-Dec-2013
+%% TLC file generated on : 20-Feb-2015 16:05:50
+
+
+%implements sfcnSpiConf "C"
+
+%include "mbed_block_common_includes.tlc"
+
+%% Function: BlockTypeSetup ===============================================
+%%
+%function BlockTypeSetup(block, system) void
+  %%
+  %% Ensure required header files are included and C++ mode is on
+    %<MbedCommonBlockTypeSetup(block, system)>
+  %%
+%endfunction
+
+%% Function: BlockInstanceSetup ===========================================
+%%
+%function BlockInstanceSetup(block, system) void
+  %%
+  %<LibBlockSetIsExpressionCompliant(block)>
+  %%
+  %if !EXISTS(::MbedSpiConfig)
+    %createrecord ::MbedSpiConfig { MbedSpiCnt 0; CreateClass TLC_TRUE }
+  %endif
+%%breakpoint  
+  %%assign pin1 = LibBlockParameterString(P1)
+  %%assign pin1 = LibBlockParameter(P1, "", "", 0)numPorts bufferSize Format
+  %assign pinMosi       = SFcnParamSettings.pinMosi
+  %assign pinMiso       = SFcnParamSettings.pinMiso
+  %assign pinSclk       = SFcnParamSettings.pinSclk
+  %assign strFormatBits = SFcnParamSettings.FormatBits
+  %assign strFormatMode = SFcnParamSettings.FormatMode
+  %assign strFreq       = SFcnParamSettings.Frequency
+  
+  %addtorecord :: MbedSpiConfig Spi { MOSI pinMosi;MISO pinMiso;SCLC pinSclk; FormatBits strFormatBits; FormatMode strFormatMode; Freq strFreq}
+  %assign :: MbedSpiConfig.MbedSpiCnt = ::MbedSpiConfig.MbedSpiCnt + 1
+%endfunction
+
+%% Function: Start ========================================================
+%%
+%function Start(block, system) Output
+  %%breakpoint
+  %assign pinMosi       = SFcnParamSettings.pinMosi
+  %assign pinMiso       = SFcnParamSettings.pinMiso
+  %assign pinSclk       = SFcnParamSettings.pinSclk
+  %assign strFormatBits = SFcnParamSettings.FormatBits
+  %assign strFormatMode = SFcnParamSettings.FormatMode
+  %assign strFreq       = SFcnParamSettings.Frequency
+
+  %if !SLibCodeGenForSim()      
+      %assign modelC = LibGetModelDotCFile() 
+      %%assign tmpBuf = "MAX6675 %<block.Identifier> (%<pin1>, %<pin2>, %<pin3>);"
+      %openfile tmpBuf
+      
+    //------------------------------------
+    // Configurate SPI Bus %<block.Identifier> 
+    //------------------------------------
+    %%SPI %<block.Identifier>(PB_5, PB_4, PB_3); // mosi, miso, sclk
+    SPI %<block.Identifier>(%<pinMosi>, %<pinMiso>, %<pinSclk>); // mosi, miso, sclk
+    %%Pointer auf SPI erzeugen SPI *spiPtr = &spiBus;
+    SPI *%<block.Identifier>Ptr = &%<block.Identifier>;
+    %%// Setup the SPI
+    %%spi.format(8,3);
+    %%spi.frequency(1000000);
+    %%%<block.Identifier>.format(%<strFormatBits>,%<strFormatMode>);
+    %%%<block.Identifier>.frequency(%<strFreq>);
+      %closefile tmpBuf
+      %<LibSetSourceFileSection(modelC, "Definitions", tmpBuf)>
+  %endif
+  %%
+%endfunction
+
+%% Function: Outputs ======================================================
+%%
+%function Outputs(block, system) Output
+  %%
+%%breakpoint
+
+%endfunction
+
+%% [EOF]

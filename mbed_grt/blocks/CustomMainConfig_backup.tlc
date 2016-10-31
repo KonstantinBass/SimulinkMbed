@@ -1,0 +1,185 @@
+%% File : sfcnUart.tlc
+%%
+%% Description: 
+%%   Simulink Coder TLC Code Generation file for sfcnUart
+%%
+%% Simulink version      : 8.3 (R2014a) 27-Dec-2013
+%% TLC file generated on : 20-Feb-2015 16:05:50
+
+/%
+     %%%-MATLAB_Construction_Commands_Start
+     def = legacy_code('initialize');
+     def.SFunctionName = 'sfcnUart';
+     def.OutputFcnSpec = 'double y1 = dummy(int8 p1,int8 p2,int8 p3)';
+     legacy_code('sfcn_tlc_generate', def);
+     %%%-MATLAB_Construction_Commands_End
+ %/
+
+%implements CustomMainConfig "C"
+
+%include "mbed_block_common_includes.tlc"
+
+%% Function: BlockTypeSetup ===============================================
+%%
+%function BlockTypeSetup(block, system) void
+  %%
+  %% Ensure required header files are included and C++ mode is on
+    %<MbedCommonBlockTypeSetup(block, system)>
+  %%
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %% Erzeugen von main.cpp
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %with CompiledModel
+  %%Da wir nicht im Globalen Scope sind wie bei ERT->
+  %%  wird der Scope von Block auf CompiledModel gesetzt
+  %selectfile NULL_FILE
+
+%%function FcnSingleTaskingMain() void
+  
+  %%<SetCurrentUtilsIncludesIdx("main_util_incl")>
+  
+  %%if GenerateSampleERTMain
+    %%assign ::CompiledModel.GenerateSampleERTMain = TLC_FALSE
+    %%%warning Overriding example ert_main.c!
+  %%endif
+
+  %if LibIsModelReferenceTarget()
+    %return
+  %endif
+
+  %assign cFile = LibCreateSourceFile("Source", "Custom", "main")
+  %%openfile tmpBuf
+  %%#include "%<LibGetMdlPubHdrBaseName()>.h"
+  %%#include "Arduino.h"
+  %%closefile tmpBuf
+  %%<LibSetSourceFileSection(cFile, "Includes", tmpBuf)>
+
+  %openfile tmpBuf
+  static boolean_T OverrunFlag = 0;\
+  Ticker StepTicker;
+  %%breakpoint
+  %%grt -> no customized function prototypes
+  %%<SLibDeclareFcnProtoCtlVariables()>\
+  
+  %<LibWriteModelData()>\
+  %closefile tmpBuf
+  
+  %%<SLibCacheCodeToFile("mainSrc_data_defn", tmpBuf)>
+  %<LibSetSourceFileSection(cFile, "Defines", tmpBuf)>
+  %openfile tmpBuf
+  #include "%<LibGetMdlPubHdrBaseName()>.h"
+  #include "mbed.h"
+  %%#include "../mbed-src/api/mbed.h"
+  %%<LibAddToCommonIncludes("max6675.h")> 
+  %closefile tmpBuf
+ 
+  %%<SLibCacheCodeToFile("mainSrc_incl", tmpBuf)>
+  %<LibSetSourceFileSection(cFile, "Includes", tmpBuf)>
+  
+  %openfile tmpBuf
+  %assign fcnReturns = "void"
+  %assign fcnName = "rt_OneStep"
+  %assign fcnParams = ""
+  %assign fcnCategory = "main"
+  %createrecord fcnRec {Name fcnName; Returns fcnReturns; Params fcnParams; ...
+    Abstract ""; Category fcnCategory; GeneratedBy "bareboard_srmain.tlc"; ...
+    Type "Utility"}
+  %%breakpoint
+  %<SLibDumpFunctionBanner(fcnRec)>
+  %undef fcnRec
+  %<fcnReturns> %<fcnName>(%<fcnParams>)
+  {
+    /* Disable interrupts here */
+    
+    /* Check for overun */
+    if (OverrunFlag++) {
+      %<LibSetRTModelErrorStatus("\"Overrun\"")>;
+      return;
+    }
+    
+    /* Save FPU context here (if necessary) */
+    /* Re-enable timer or interrupt here */
+    %assign varsbuf = LibWriteModelInputs()
+    %if varsbuf != ""
+      /* Remove conditional, and set model inputs here */
+      %<varsbuf>\
+    %endif
+    %%breakpoint  
+
+    %<LibCallModelStep(0)>\
+
+    %assign varsbuf = LibWriteModelOutputs()
+    %if varsbuf != ""
+      /* Remove conditional, and get model outputs here */
+      %<varsbuf>\
+    %endif
+    
+    OverrunFlag--;
+    
+    /* Disable interrupts here */
+    /* Restore FPU context here (if necessary) */
+    /* Enable interrupts here */
+  }
+   
+  %assign fcnReturns = "int_T"
+  %assign fcnName = "main"
+  %assign fcnParams = "int_T argc, const char *argv[]"
+  %assign fcnCategory = "main"
+  %createrecord fcnRec {Name fcnName; Returns fcnReturns; Params fcnParams; ...
+    Abstract ""; Category fcnCategory; GeneratedBy "bareboard_srmain.tlc"; ...
+    Type "Main"}
+  %<SLibDumpFunctionBanner(fcnRec)>
+  %undef fcnRec
+  %<fcnReturns> %<fcnName>(%<fcnParams>)
+  {
+    /* Initialize model */
+    %<LibCallModelInitialize()>\
+    
+    /* Associate rt_OneStep() with a timer that executes at the base rate of the model */
+    /* Init the ticker with the address of the function to be attached and the interval */
+    StepTicker.attach(&rt_OneStep, %<CompiledModel.FundamentalStepSize>);
+    
+    while (true) {
+        // Do other things
+    }
+
+    %<LibCallModelTerminate()>\
+    return 0;
+  }
+  %closefile tmpBuf
+  
+  %%<SLibCacheCodeToFile("mainSrc_fcn_defn", tmpBuf)>
+  %%<LibSetSourceFileSection(cFile, "Definitions", tmpBuf)>
+  %<LibSetSourceFileSection(cFile, "Functions", tmpBuf)>
+
+  %%<SetCurrentUtilsIncludesIdx("")>
+  
+  %%endfunction
+  %endwith
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %% ENDE: Erzeugen von main.cpp
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%endfunction
+
+%% Function: BlockInstanceSetup ===========================================
+%%
+%function BlockInstanceSetup(block, system) void
+  %%
+  %<LibBlockSetIsExpressionCompliant(block)>
+  %%
+
+  %if !EXISTS(::MbedUartConfig)
+    %createrecord ::MbedCustomMainConfig { MbedCustomMainCnt 0; CreateClass TLC_TRUE }
+  %endif
+%%breakpoint  
+  %%assign pin1 = LibBlockParameterString(P1)
+  %%assign pin1 = LibBlockParameter(P1, "", "", 0)numPorts bufferSize Format
+  %assign strName   = SFcnParamSettings.strName
+  %assign lngName   = SFcnParamSettings.lngName
+  %assign numTmp    = SFcnParamSettings.numTmp
+  %addtorecord :: MbedCustomMainConfig CustomMain { FileName strName; FileNameLng lngName; Format numTmp}
+  %assign :: MbedCustomMainConfig.MbedCustomMainCnt = ::MbedCustomMainConfig.MbedCustomMainCnt + 1
+%endfunction
+
+
+%% [EOF]
