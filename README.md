@@ -8,4 +8,3 @@ Google ENG:
 This Reposetory includes the connection of Simulink models to a MBED controller.
 To use different standard blocks as AnalogIn, DigitalOut or UART and SPI are available.
 In addition, there are a few blocks from the many MBED libraries such as Nokia 5110 or MAX6675 thermocouple.
-:)
